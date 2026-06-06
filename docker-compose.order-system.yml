@@ -1,0 +1,72 @@
+# Override-файл: инжектирует OTel Java agent в сервисы order-system.
+# Используется вместе с order-system/docker-compose.yml — НЕ изменяет файлы приложения.
+#
+# build.context переопределён через ${ORDER_SYSTEM_DIR} (экспортируется из Makefile),
+# потому что --project-directory делает monitor-system/ базовой директорией,
+# из-за чего context: "." из order-system/docker-compose.yml резолвился бы неправильно.
+
+services:
+
+  order-service:
+    build:
+      context: ${ORDER_SYSTEM_DIR}
+    volumes:
+      - ./otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
+    environment:
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: "order-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_TRACES_SAMPLER: "parentbased_always_on"
+      OTEL_INSTRUMENTATION_KAFKA_EXPERIMENTAL_SPAN_ATTRIBUTES: "true"
+      OTEL_METRICS_EXPORTER: "otlp"
+      OTEL_LOGS_EXPORTER: "otlp"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=local,service.version=1.0.0"
+
+  payment-service:
+    build:
+      context: ${ORDER_SYSTEM_DIR}
+    volumes:
+      - ./otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
+    environment:
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: "payment-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_TRACES_SAMPLER: "parentbased_always_on"
+      OTEL_INSTRUMENTATION_KAFKA_EXPERIMENTAL_SPAN_ATTRIBUTES: "true"
+      OTEL_METRICS_EXPORTER: "otlp"
+      OTEL_LOGS_EXPORTER: "otlp"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=local,service.version=1.0.0"
+
+  shipping-service:
+    build:
+      context: ${ORDER_SYSTEM_DIR}
+    volumes:
+      - ./otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
+    environment:
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: "shipping-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_TRACES_SAMPLER: "parentbased_always_on"
+      OTEL_INSTRUMENTATION_KAFKA_EXPERIMENTAL_SPAN_ATTRIBUTES: "true"
+      OTEL_METRICS_EXPORTER: "otlp"
+      OTEL_LOGS_EXPORTER: "otlp"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=local,service.version=1.0.0"
+
+  analytics-service:
+    build:
+      context: ${ORDER_SYSTEM_DIR}
+    volumes:
+      - ./otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
+    environment:
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: "analytics-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_TRACES_SAMPLER: "parentbased_always_on"
+      OTEL_INSTRUMENTATION_KAFKA_EXPERIMENTAL_SPAN_ATTRIBUTES: "true"
+      OTEL_METRICS_EXPORTER: "otlp"
+      OTEL_LOGS_EXPORTER: "otlp"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=local,service.version=1.0.0"

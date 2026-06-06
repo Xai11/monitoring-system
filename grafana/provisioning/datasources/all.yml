@@ -1,0 +1,58 @@
+apiVersion: 1
+
+datasources:
+
+  # ── Prometheus ──────────────────────────────────────────────────────────────
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: "15s"
+      # Exemplar linking: metric → trace (Jaeger)
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: jaeger
+          urlDisplayLabel: "View trace in Jaeger"
+        - name: traceID
+          datasourceUid: jaeger
+          urlDisplayLabel: "View trace in Jaeger"
+
+  # ── Jaeger ──────────────────────────────────────────────────────────────────
+  - name: Jaeger
+    type: jaeger
+    uid: jaeger
+    url: http://jaeger:16686
+    jsonData:
+      # Trace → logs correlation (trace spans → Loki)
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: "-1m"
+        spanEndTimeShift: "1m"
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        query: '{service_name="${__span.tags.service.name}"} |= "${__trace.traceId}"'
+
+  # ── Loki ────────────────────────────────────────────────────────────────────
+  - name: Loki
+    type: loki
+    uid: loki
+    url: http://loki:3100
+    jsonData:
+      # Derived fields: log line → trace (Jaeger)
+      derivedFields:
+        - name: TraceID
+          matcherType: label
+          matcherRegex: trace_id
+          url: "${__value.raw}"
+          datasourceUid: jaeger
+          urlDisplayLabel: "View trace in Jaeger"
+        - name: TraceID_json
+          matcherType: regex
+          matcherRegex: '"trace_id"\s*:\s*"([a-f0-9]{16,32})"'
+          url: "${__value.raw}"
+          datasourceUid: jaeger
+          urlDisplayLabel: "View trace in Jaeger"

@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: monitoring-service
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    streams:
+      application-id: monitoring-service
+      default-key-serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      default-value-serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      properties:
+        state.dir: /tmp/kafka-streams
+        num.stream.threads: 2
+        default.deserialization.exception.handler: org.apache.kafka.streams.errors.LogAndContinueExceptionHandler
+    consumer:
+      group-id: monitoring-service-alerts
+      auto-offset-reset: latest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Rule parameters — change without recompilation
+monitoring:
+  latency:
+    window-size-seconds: 60
+    slide-seconds: 10
+    p99-threshold-ms: 200
+    min-sample-count: 10
+  dlq:
+    window-size-minutes: 5
+    rate-threshold: 0.01
+  consumer-lag:
+    threshold-messages: 1000
+
+alertmanager:
+  url: ${ALERTMANAGER_URL:http://alertmanager:9093}
+
+prometheus:
+  url: ${PROMETHEUS_URL:http://prometheus:9090}

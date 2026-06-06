@@ -1,0 +1,62 @@
+groups:
+  - name: eda-alerts
+    interval: 30s
+    rules:
+
+      # ── Consumer Lag ────────────────────────────────────────────────────────
+      - alert: ConsumerLagHigh
+        expr: kafka_consumergroup_lag > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High consumer lag on {{ $labels.topic }}"
+          description: >
+            Consumer group {{ $labels.consumergroup }} on topic {{ $labels.topic }}
+            has lag {{ $value | humanize }} (threshold 1000).
+
+      # ── p99 Latency ─────────────────────────────────────────────────────────
+      # Uses Spring Boot Actuator histogram (job-level); threshold 200 ms.
+      - alert: P99LatencyBreach
+        expr: >
+          histogram_quantile(0.99,
+            sum(rate(http_server_requests_seconds_bucket{
+              uri!~"/actuator.*"
+            }[5m])) by (le, job)
+          ) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p99 latency breach on {{ $labels.job }}"
+          description: >
+            p99 latency for {{ $labels.job }} is
+            {{ $value | humanizeDuration }} (threshold: 200 ms).
+
+      # ── DLQ Rate ────────────────────────────────────────────────────────────
+      - alert: DlqRateHigh
+        expr: >
+          sum(rate(kafka_topic_partition_current_offset{
+            topic=~".*[.-]dlq$|.*dead[.-]letter.*"
+          }[5m])) by (topic) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DLQ messages on {{ $labels.topic }}"
+          description: >
+            Messages flowing to DLQ topic {{ $labels.topic }} at
+            {{ $value | humanize }}/s (threshold: 0.01/s).
+
+      # ── Service Health ──────────────────────────────────────────────────────
+      - alert: ServiceDown
+        expr: >
+          up{job=~"order-service|payment-service|shipping-service|analytics-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: >
+            Service {{ $labels.job }} ({{ $labels.instance }}) has been
+            unreachable for more than 1 minute.
